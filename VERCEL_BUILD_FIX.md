@@ -1,35 +1,23 @@
-# Vercel build fix — October 14, 2026
+# Vercel TypeScript compile fix (v3.0.2)
 
-## Issue
+## Error
 
-Production deployment `9U4umEx76` of `Mithilessh2010/Newsy` failed in the Next.js TypeScript validation phase:
+`lib/news.ts:7` indexing named HTML entity map with callback argument typed `any` triggers TS7053.
 
-`app/api/search/route.ts:7:122` — `Argument of type 'string' is not assignable to parameter of type 'NewsScope'`.
+## Resolution
 
-## Fixed
+The `namedEntities` table is now explicitly typed as `Record<string, string>` and the replace callback capture is annotated as a `string`. This removes the unsafe index and leaves the feed-decoding behavior unchanged.
 
-In `app/api/search/route.ts`, the `scope` expression now narrows the same variable:
+## Why it previously passed tests
 
-```ts
-const loc = locationFromQuery(params);
-const rawScope = params.get('scope');
-const scope = isNewsScope(rawScope) ? rawScope : 'local';
-```
+`ts.transpileModule()` emits JavaScript without performing full semantic TypeScript checks. An actual Next.js build does both.
 
-This follows the already-correct pattern used by `app/api/news/route.ts`.
+## Verification
 
-## Deploy
+- `npm test`: validated with locally available TypeScript (`NODE_PATH=...`).
+- Strict standalone TypeScript: the indexing error is no longer present.
+- **Full Next.js/Vercel production build: NOT verified in the current isolated environment** because the npm registry cannot be resolved.
 
-Preferred minimal fix: edit `app/api/search/route.ts` in the GitHub `Mithilessh2010/Newsy` `main` branch. Replace the old `const loc=...scope=...` expression with the above three lines. Commit the change; Vercel should deploy from GitHub automatically.
+## Apply without replacing your repository
 
-Alternative: replace repository contents with the included updated Next.js project, preserving your own protected environment variables in Vercel (never put credentials in git).
-
-## Tests performed
-
-- 29 Node.js automated tests passed on this updated source.
-- Focused TypeScript proof that the guarded `scope` value is assignable to `NewsScope` passed with `tsc`.
-- ZIP integrity is checked.
-
-## Limitations
-
-The full Next.js production build could **not** be run in the local build environment because npm dependency installation from the registry timed out. A successful Vercel build has **not** been observed for this patch. If Vercel reports another TypeScript/build error after redeployment, copy the new log so it can be fixed. Supabase environment variables and database migrations are still needed for full backend operation.
+In GitHub edit `lib/news.ts`: annotate the named entity map as `Record<string,string>` and type the regex callback capture `entity:string`. Commit and inspect the next Vercel build.

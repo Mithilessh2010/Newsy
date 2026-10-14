@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const Module=require('node:module');
-const ts=require('/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript');
+const ts=require('typescript');
 const root=path.resolve(__dirname,'..');
 require.extensions['.ts']=function(mod,file){const contents=fs.readFileSync(file,'utf8');const {outputText}=ts.transpileModule(contents,{fileName:file,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,esModuleInterop:true}});mod._compile(outputText,file)};
 const originalLoader=Module._load;

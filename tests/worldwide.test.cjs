@@ -1,4 +1,4 @@
-const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');const ts=require('/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript');
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');const ts=require('typescript');
 const root=path.resolve(__dirname,'..');
 require.extensions['.ts']=function(module,filename){const code=ts.transpileModule(fs.readFileSync(filename,'utf8'),{fileName:filename,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText;module._compile(code,filename)};
 const {normalizeLocation,locationFromQuery,newsQuery,DEFAULT_LOCATION,FEATURED_LOCATIONS,isPleasanton}=require('../lib/location.ts');const {buildNewsSources,parseRss}=require('../lib/news.ts');
