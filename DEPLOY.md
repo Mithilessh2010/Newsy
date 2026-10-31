@@ -35,7 +35,7 @@ Import the project into Vercel as Next.js. No separate build-output directory is
 
 ### 7. Publish the live URL and evidence
 
-Once the deployment works, add its real URL to the top of `README.md`. Capture one actual production screenshot and replace the design-preview image in the README. Add the demo video if available. Until then, the screenshots in `demo/` are explicitly marked static previews, not proof of deployment.
+Once the deployment works, add its real URL to the top of `README.md`. Capture one actual production screenshot and replace the design-preview image in the README. Add the demo video if available. Until then, the screenshots in `docs/` are explicitly marked static previews, not proof of deployment.
 
 ### If something fails
 

@@ -5,8 +5,7 @@ import type { GlobalItem } from '@/lib/world-connectors';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
-export const ARCHIVE_SOURCES = ['gdelt', 'usgs', 'nasa-eonet', 'federal-register', 'loc', 'crossref'] as const;
-export function toArchiveRow(item: GlobalItem, now: string) {
+function toArchiveRow(item: GlobalItem, now: string) {
     return { id: item.id, source: item.source, category: item.category, title: item.title, description: item.description, url: item.url, published_at: item.publishedAt && Number.isFinite(Date.parse(item.publishedAt)) ? item.publishedAt : now,
         latitude: item.location?.latitude ?? null, longitude: item.location?.longitude ?? null, last_seen_at: now };
 }

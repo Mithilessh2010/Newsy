@@ -120,9 +120,3 @@ test('Canvas globe draws frames and responds to city, drag, keyboard and zoom', 
         originalGlobals();
     }
 });
-test('Standalone demo ships actual renderer, not a CSS-only effect', () => {
-    const html = fs.readFileSync(path.join(__dirname, '../demo/index.html'), 'utf8');
-    assert.match(html, /createGlobe\(earth/);
-    assert.match(html, /createCanvasGlobe\(earth/);
-    assert.match(html, /id="earth"/);
-});

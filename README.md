@@ -8,11 +8,11 @@ This project is being built for [Equal Horizons](https://www.equalhorizons.tech/
 
 ### See it
 
-![Equal Horizons homepage, with the Earth and location controls](demo/desktop.png)
+![Equal Horizons homepage, with the Earth and location controls](docs/homepage-preview.png)
 
-[**Explore the interactive design preview**](demo/index.html) · [Mobile screenshot](demo/mobile.png)
+[Mobile preview](docs/mobile-preview.png)
 
-The preview shares the application’s globe rendering approach and switches to a draggable Canvas sphere in browsers where WebGL is blocked. It includes sample copy rather than pretending to fetch live reporting. **It is not the live news service.** Deploy the Next.js application to use live feeds and search endpoints. No production URL is claimed in this repository until a release is actually deployed and verified.
+These screenshots show the visual direction. The deployed Next.js site loads live feeds and public records from the configured sources; provider availability varies. A deployment must be verified before presenting it as a working public link.
 
 ## What you can do
 
@@ -41,7 +41,7 @@ There's no third-party UI template or component library controlling the look. Th
 
 **15 adapters are implemented: 12 keyless sources and 3 integrations that require API keys.** Sources include GDELT, USGS, NASA EONET, GDACS, the Federal Register, Library of Congress, GOV.UK Content and Search, UK Parliament bills, Open-Meteo geocoding, Crossref, World Bank, Congress.gov, GovInfo, and Regulations.gov.
 
-See [`sources.json`](sources.json) for the broader provider catalog. Entries marked `catalog` are research targets, **not connected integrations**. Keyless doesn't mean unlimited or unrestricted: review each provider's rate limits, licenses, terms, attribution, and acceptable use before scaling traffic.
+See [`public/sources.json`](public/sources.json) for the broader provider catalog. Entries marked `catalog` are research targets, **not connected integrations**. Keyless doesn't mean unlimited or unrestricted: review each provider's rate limits, licenses, terms, attribution, and acceptable use before scaling traffic.
 
 The application requests data server-side and normalizes responses in [`lib/world-connectors.ts`](lib/world-connectors.ts). Original publisher URLs are preserved. Provider failures are surfaced without dumping credentials.
 
@@ -72,15 +72,13 @@ result caps, and duplicate providers. These are unit-level checks, not a replace
 for a running build. An optional real-browser check is available:
 
 ```bash
-pip install playwright
-playwright install chromium
-python scripts/check_demo.py
+npm run build
+npm start
 ```
 
-The browser check explicitly disables WebGL and verifies the interactive Canvas fallback
-at desktop and mobile widths. Live WebGL still needs a real browser/device check.
+Open the app in a browser to check the real WebGL renderer and the Canvas fallback on your device.
 
-`npm test` runs adapter tests and application regression tests. A successful production build is an additional requirement, not something the unit tests replace.
+`npm test` runs adapter tests and application regression tests. A production build is an additional requirement, not something the unit tests replace.
 
 ### Configuration
 
@@ -117,7 +115,7 @@ public/media/      Bundled Earth texture
 sql/               Database schema, permissions and scheduler
 scripts/           Deployed smoke checks and optional offline browser test
 tests/             Source adapter and app regression tests
-demo/              Static design demo and screenshots
+docs/              Homepage screenshots for documentation
 ```
 
 ### Notes on the implementation
