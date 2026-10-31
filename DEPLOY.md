@@ -4,7 +4,7 @@ The app should deploy on Vercel from the repository root. These steps are writte
 
 ### 1. Install and build
 
-Use Node >=20.9, then `npm install`, `npm test`, `npm run typecheck`, and `npm run build`. If the build fails, fix the first error in the output before attempting a second deployment.
+Use Node.js 24.x, then `npm install`, `npm test`, `npm run typecheck`, and `npm run build`. If the build fails, fix the first error in the output before attempting a second deployment.
 
 ### 2. Create the database
 

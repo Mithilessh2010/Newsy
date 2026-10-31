@@ -22,7 +22,7 @@ const availableModes: SourceMode[] = ['records', 'news', 'events', 'archives', '
 function readableMode(mode: SourceMode) {
     return mode === 'all' ? 'All sources' : mode[0].toUpperCase() + mode.slice(1);
 }
-function formatPublishedDate(date?: string) {
+function formatPublishedDate(date?: string | null) {
     if (!date || !Number.isFinite(Date.parse(date)))
         return null;
     return new Date(date).toLocaleDateString(undefined, {

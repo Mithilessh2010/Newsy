@@ -47,7 +47,7 @@ The application requests data server-side and normalizes responses in [`lib/worl
 
 ## Try it locally
 
-Use Node.js 20.9 or newer and npm.
+Use Node.js 24.x and npm, matching the Vercel runtime pinned in `package.json`.
 
 ```bash
 npm install

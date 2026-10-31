@@ -1,6 +1,6 @@
 {
   "name": "equal-horizons-newsy",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -26,6 +26,6 @@
     "typescript": "^5.9.0"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": "24.x"
   }
 }
