@@ -1,27 +1,108 @@
-import {storyId} from './ingestion';
-import type {Category} from './content';
-import {type CommunityLocation,type NewsScope,countryName} from './location';
-export type FeedItem={id:string;title:string;source:string;url:string;publishedAt:string;category:Category;city:string;countryCode?:string;scope?:NewsScope};
-export type FeedResult={city:string;location:CommunityLocation;scope:NewsScope;stories:FeedItem[];fetchedAt:string;available:boolean;message?:string;source:string;archiveEnabled?:boolean};
-const categoryFor=(text:string):Category=>{const s=text.toLowerCase();if(/school|student|classroom|district|teacher|education|college|campus/.test(s))return 'Education';if(/housing|apartment|rent|home prices|real estate/.test(s))return 'Housing';if(/council|mayor|election|ballot|county|meeting|ordinance|parliament|municipal/.test(s))return 'Government';if(/traffic|highway|train|bart|transport|transit|road|freeway|rail/.test(s))return 'Transportation';if(/planning|zoning|develop|construction/.test(s))return 'Planning';if(/restaurant|business|company|store|economy/.test(s))return 'Business';return 'Community'};
-const namedEntities:Record<string,string>={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' ','#39':"'"};
-export const decodeEntities=(value:string)=>value.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/&#(x[0-9a-f]+|\d+);/gi,(_match:string,n:string)=>{const cp=n.toLowerCase().startsWith('x')?parseInt(n.slice(1),16):parseInt(n,10);return cp>0&&cp<0x110000?String.fromCodePoint(cp):''}).replace(/<[^>]*>/g,'').replace(/&(amp|lt|gt|quot|apos|nbsp|#39);/gi,(_match:string,entity:string)=>namedEntities[entity.toLowerCase()]??'').trim();
-const field=(s:string,key:string)=>{const match=s.match(new RegExp(`<${key}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${key}>`,'i'));return match?decodeEntities(match[1]):''};
-export function parseRss(xml:string,location:CommunityLocation,scope:NewsScope='local'):FeedItem[]{if(xml.length>2_000_000)throw new Error('RSS response too large');return [...xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].slice(0,70).map(m=>{const raw=field(m[1],'title'),source=field(m[1],'source')||'News publisher';const title=raw.endsWith(` - ${source}`)?raw.slice(0,-source.length-3):raw;const url=field(m[1],'link'),pubDate=field(m[1],'pubDate');if(!title||!url||!Number.isFinite(Date.parse(pubDate)))return null;try{const parsed=new URL(url);if(!['https:','http:'].includes(parsed.protocol))return null;}catch{return null}return {id:storyId(url,location,scope),title,source,url,publishedAt:new Date(pubDate).toISOString(),category:categoryFor(title),city:location.name,countryCode:location.countryCode,scope}}).filter((x):x is NonNullable<typeof x>=>x!==null);}
-const languages:Record<string,string>={US:'en',GB:'en',IN:'en',AU:'en',CA:'en',NZ:'en',ZA:'en',SG:'en',IE:'en',FR:'fr',DE:'de',ES:'es',IT:'it',PT:'pt',BR:'pt',JP:'ja',KR:'ko',CN:'zh',TW:'zh',NL:'nl',BE:'nl',SE:'sv',NO:'no',DK:'da',FI:'fi',PL:'pl',RU:'ru',TR:'tr',MX:'es',AR:'es',CL:'es',CO:'es',EG:'ar',SA:'ar',AE:'ar',ID:'id',TH:'th',VN:'vi'};
-export function buildNewsSources(loc:CommunityLocation,scope:NewsScope){const code=loc.countryCode,lang=languages[code]||'en';const edition=`hl=${encodeURIComponent(lang+'-'+code)}&gl=${encodeURIComponent(code)}&ceid=${encodeURIComponent(code+':'+lang)}`;
- let q:string;
- if(scope==='world')q='world news when:2d';
- else if(scope==='national')q=`${countryName(code)} when:3d`;
- else {const place=[loc.name,loc.region].filter(Boolean).join(' ');q=`"${loc.name}" ${loc.region||loc.country} when:7d`;if(place.length>160)throw new Error('Invalid location');}
- const sources=[{url:`https://news.google.com/rss/search?q=${encodeURIComponent(q)}&${scope==='world'?'hl=en-US&gl=US&ceid=US:en':edition}`,name:'Google News RSS',official:false}];
- if(scope==='local'&&loc.name.toLowerCase()==='pleasanton'&&loc.countryCode==='US'&&loc.region.toLowerCase()==='california')sources.push({url:'https://www.cityofpleasantonca.gov/feed/',name:'City of Pleasanton',official:true});
- return sources;
+import { storyId } from './ingestion';
+import type { Category } from './content';
+import { type CommunityLocation, type NewsScope, countryName } from './location';
+export type FeedItem = {
+    id: string;
+    title: string;
+    source: string;
+    url: string;
+    publishedAt: string;
+    category: Category;
+    city: string;
+    countryCode?: string;
+    scope?: NewsScope;
+};
+export type FeedResult = {
+    city: string;
+    location: CommunityLocation;
+    scope: NewsScope;
+    stories: FeedItem[];
+    fetchedAt: string;
+    available: boolean;
+    message?: string;
+    source: string;
+    archiveEnabled?: boolean;
+};
+const categoryFor = (text: string): Category => {
+    const s = text.toLowerCase();
+    if (/school|student|classroom|district|teacher|education|college|campus/.test(s))
+        return 'Education';
+    if (/housing|apartment|rent|home prices|real estate/.test(s))
+        return 'Housing';
+    if (/council|mayor|election|ballot|county|meeting|ordinance|parliament|municipal/.test(s))
+        return 'Government';
+    if (/traffic|highway|train|bart|transport|transit|road|freeway|rail/.test(s))
+        return 'Transportation';
+    if (/planning|zoning|develop|construction/.test(s))
+        return 'Planning';
+    if (/restaurant|business|company|store|economy/.test(s))
+        return 'Business';
+    return 'Community';
+};
+const namedEntities: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', '#39': "'" };
+export const decodeEntities = (value: string) => value.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&#(x[0-9a-f]+|\d+);/gi, (_match: string, n: string) => { const cp = n.toLowerCase().startsWith('x') ? parseInt(n.slice(1), 16) : parseInt(n, 10); return cp > 0 && cp < 0x110000 ? String.fromCodePoint(cp) : ''; }).replace(/<[^>]*>/g, '').replace(/&(amp|lt|gt|quot|apos|nbsp|#39);/gi, (_match: string, entity: string) => namedEntities[entity.toLowerCase()] ?? '').trim();
+const field = (s: string, key: string) => { const match = s.match(new RegExp(`<${key}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${key}>`, 'i')); return match ? decodeEntities(match[1]) : ''; };
+export function parseRss(xml: string, location: CommunityLocation, scope: NewsScope = 'local'): FeedItem[] {
+    if (xml.length > 2000000)
+        throw new Error('RSS response too large');
+    return [...xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].slice(0, 70).map(m => {
+        const raw = field(m[1], 'title'), source = field(m[1], 'source') || 'News publisher';
+        const title = raw.endsWith(` - ${source}`) ? raw.slice(0, -source.length - 3) : raw;
+        const url = field(m[1], 'link'), pubDate = field(m[1], 'pubDate');
+        if (!title || !url || !Number.isFinite(Date.parse(pubDate)))
+            return null;
+        try {
+            const parsed = new URL(url);
+            if (!['https:', 'http:'].includes(parsed.protocol))
+                return null;
+        }
+        catch {
+            return null;
+        }
+        return { id: storyId(url, location, scope), title, source, url, publishedAt: new Date(pubDate).toISOString(), category: categoryFor(title), city: location.name, countryCode: location.countryCode, scope };
+    }).filter((x): x is NonNullable<typeof x> => x !== null);
 }
-export async function getNews(location:CommunityLocation,scope:NewsScope='local'):Promise<FeedResult>{const sources=buildNewsSources(location,scope);
- const results=await Promise.allSettled(sources.map(async source=>{const response=await fetch(source.url,{next:{revalidate:600},headers:{'User-Agent':'EqualHorizonsCivic/2.0 (+https://www.equalhorizons.tech/)',Accept:'application/rss+xml,application/xml;q=0.9'},signal:AbortSignal.timeout(8500)});if(!response.ok)throw new Error('Upstream feed temporarily unavailable');const parsed=parseRss(await response.text(),location,scope);return source.official?parsed.map(item=>({...item,source:source.name})):parsed;}));
- const successes=results.filter((r):r is PromiseFulfilledResult<FeedItem[]>=>r.status==='fulfilled');const activeSources=results.map((r,i)=>r.status==='fulfilled'?sources[i].name:null).filter((name):name is string=>name!==null);const fetchedAt=new Date().toISOString();
- if(!successes.length)return {city:location.name,location,scope,stories:[],fetchedAt,available:false,message:'Source feeds are temporarily unavailable. Try again shortly.',source:sources.map(s=>s.name).join(' + ')};
- const seen=new Set<string>();const stories=successes.flatMap(r=>r.value).filter(s=>{const key=s.url.toLowerCase();if(seen.has(key))return false;seen.add(key);return true}).sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt)).slice(0,60);
- return {city:location.name,location,scope,stories,fetchedAt,available:true,source:activeSources.join(' + ')};
+const languages: Record<string, string> = { US: 'en', GB: 'en', IN: 'en', AU: 'en', CA: 'en', NZ: 'en', ZA: 'en', SG: 'en', IE: 'en', FR: 'fr', DE: 'de', ES: 'es', IT: 'it', PT: 'pt', BR: 'pt', JP: 'ja', KR: 'ko', CN: 'zh', TW: 'zh', NL: 'nl', BE: 'nl', SE: 'sv', NO: 'no', DK: 'da', FI: 'fi', PL: 'pl', RU: 'ru', TR: 'tr', MX: 'es', AR: 'es', CL: 'es', CO: 'es', EG: 'ar', SA: 'ar', AE: 'ar', ID: 'id', TH: 'th', VN: 'vi' };
+export function buildNewsSources(loc: CommunityLocation, scope: NewsScope) {
+    const code = loc.countryCode, lang = languages[code] || 'en';
+    const edition = `hl=${encodeURIComponent(lang + '-' + code)}&gl=${encodeURIComponent(code)}&ceid=${encodeURIComponent(code + ':' + lang)}`;
+    let q: string;
+    if (scope === 'world')
+        q = 'world news when:2d';
+    else if (scope === 'national')
+        q = `${countryName(code)} when:3d`;
+    else {
+        const place = [loc.name, loc.region].filter(Boolean).join(' ');
+        q = `"${loc.name}" ${loc.region || loc.country} when:7d`;
+        if (place.length > 160)
+            throw new Error('Invalid location');
+    }
+    const sources = [{ url: `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&${scope === 'world' ? 'hl=en-US&gl=US&ceid=US:en' : edition}`, name: 'Google News RSS', official: false }];
+    if (scope === 'local' && loc.name.toLowerCase() === 'pleasanton' && loc.countryCode === 'US' && loc.region.toLowerCase() === 'california')
+        sources.push({ url: 'https://www.cityofpleasantonca.gov/feed/', name: 'City of Pleasanton', official: true });
+    return sources;
+}
+export async function getNews(location: CommunityLocation, scope: NewsScope = 'local'): Promise<FeedResult> {
+    const sources = buildNewsSources(location, scope);
+    const results = await Promise.allSettled(sources.map(async (source) => {
+        const response = await fetch(source.url, { next: { revalidate: 600 }, headers: { 'User-Agent': 'EqualHorizonsCivic/2.0 (+https://www.equalhorizons.tech/)', Accept: 'application/rss+xml,application/xml;q=0.9' }, signal: AbortSignal.timeout(8500) });
+        if (!response.ok)
+            throw new Error('Upstream feed temporarily unavailable');
+        const parsed = parseRss(await response.text(), location, scope);
+        return source.official ? parsed.map(item => ({ ...item, source: source.name })) : parsed;
+    }));
+    const successes = results.filter((r): r is PromiseFulfilledResult<FeedItem[]> => r.status === 'fulfilled');
+    const activeSources = results.map((r, i) => r.status === 'fulfilled' ? sources[i].name : null).filter((name): name is string => name !== null);
+    const fetchedAt = new Date().toISOString();
+    if (!successes.length)
+        return { city: location.name, location, scope, stories: [], fetchedAt, available: false, message: 'Source feeds are temporarily unavailable. Try again shortly.', source: sources.map(s => s.name).join(' + ') };
+    const seen = new Set<string>();
+    const stories = successes.flatMap(r => r.value).filter(s => {
+        const key = s.url.toLowerCase();
+        if (seen.has(key))
+            return false;
+        seen.add(key);
+        return true;
+    }).sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt)).slice(0, 60);
+    return { city: location.name, location, scope, stories, fetchedAt, available: true, source: activeSources.join(' + ') };
 }

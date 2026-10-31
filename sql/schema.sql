@@ -1,4 +1,3 @@
--- Run in Supabase SQL editor. Auth users are managed by Supabase Auth.
 create table if not exists public.saved_items (
  user_id uuid not null references auth.users(id) on delete cascade,
  item_id text not null,
@@ -41,4 +40,3 @@ create policy "follow_owner_insert" on public.followed_topics for insert to auth
 create policy "follow_owner_delete" on public.followed_topics for delete to authenticated using ((select auth.uid())=user_id);
 drop policy if exists "public_news_select" on public.news_items;
 create policy "public_news_select" on public.news_items for select to anon, authenticated using (true);
--- Ingestion is service-role only. Do not create public INSERT/UPDATE policies for news_items.

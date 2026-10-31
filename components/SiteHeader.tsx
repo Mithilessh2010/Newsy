@@ -1,12 +1,84 @@
 'use client';
-import Link from 'next/link';import {usePathname,useRouter} from 'next/navigation';import {useState} from 'react';
-import {useApp} from './Provider';import {LocationPicker} from './LocationPicker';import {Menu,X,Search,ArrowUpRight} from './Icons';
-export function SiteHeader(){const path=usePathname(),router=useRouter(),{location,user}=useApp();const[menu,setMenu]=useState(false),[search,setSearch]=useState(false),[q,setQ]=useState('');const links=[['/news','LATEST'],['/explore','EXPLORE'],['/timelines','TIMELINES'],['/records','PUBLIC RECORDS']];return <>
-<header className="masthead"><div className="header-inner"><Link href="/" className="logo" onClick={()=>setMenu(false)} aria-label="Equal Horizons home"><span className="logo-type">EQUAL<br/>HORIZONS<span className="starburst">✳</span></span><span className="logo-tagline">PUBLIC KNOWLEDGE. WORLDWIDE.</span></Link>
-<nav className="main-nav" aria-label="Main navigation">{links.map(([href,label])=><Link key={href} href={href} className={path===href?'active':''}>{label}</Link>)}<button aria-label="Open search" onClick={()=>setSearch(true)}><Search size={19}/></button></nav>
-<div className="header-right"><LocationPicker/><Link className="sign-in" href="/account">{user?'ACCOUNT':'SIGN IN'}</Link><Link className="create-account" href="/account">{user?'YOUR SPACE':'CREATE ACCOUNT'} <ArrowUpRight size={15}/></Link></div>
-<button className="mobile-menu" aria-label="Toggle menu" onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></div></header>
-<div className="edition-bar"><div className="edition-inner"><div><b>{location.name.toUpperCase()} EDITION</b><span className="edition-dot">◆</span><span>{location.country.toUpperCase()} / YOUR COMMUNITY, IN CONTEXT</span></div><div className="edition-right"><span>GLOBAL REACH · LOCAL FOCUS</span><Link href="/news">THE NEWS WIRE <ArrowUpRight size={13}/></Link></div></div></div>
-{menu&&<nav className="mobile-panel"><LocationPicker compact/>{links.map(([href,label])=><Link key={href} href={href} onClick={()=>setMenu(false)}>{label}</Link>)}<Link href="/saved" onClick={()=>setMenu(false)}>SAVED</Link><Link href="/account" onClick={()=>setMenu(false)}>YOUR ACCOUNT</Link><button onClick={()=>{setMenu(false);setSearch(true)}}>SEARCH THE ARCHIVE →</button></nav>}
-{search&&<div className="search-overlay" role="dialog" aria-modal="true" aria-label="Search Equal Horizons"><div className="search-overlay-panel"><div className="search-overlay-top"><span>SEARCH NEWS AND RECORDS</span><button aria-label="Close search" onClick={()=>setSearch(false)}><X/></button></div><form onSubmit={e=>{e.preventDefault();router.push('/search?q='+encodeURIComponent(q));setSearch(false)}}><Search size={24}/><input autoFocus placeholder="Find a story, a city, an official record..." value={q} onChange={e=>setQ(e.target.value)}/><button type="submit">SEARCH <ArrowUpRight size={17}/></button></form><p>Search this region’s headlines, the expanding news archive and linked official records.</p></div></div>}
-</>}
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { FormEvent, useEffect, useState } from 'react';
+import { ArrowUpRight, Menu, Search, X } from 'lucide-react';
+import { useApp } from './Provider';
+const navigation = [
+    { href: '/news', label: 'News' },
+    { href: '/explore', label: 'Explore' },
+    { href: '/records', label: 'Public records' },
+    { href: '/timelines', label: 'Archive' },
+    { href: '/about', label: 'Our mission' },
+];
+export function SiteHeader() {
+    const pathname = usePathname();
+    const router = useRouter();
+    const { user } = useApp();
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [query, setQuery] = useState('');
+    useEffect(() => {
+        const onEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setMenuOpen(false);
+                setSearchOpen(false);
+            }
+        };
+        document.addEventListener('keydown', onEscape);
+        return () => document.removeEventListener('keydown', onEscape);
+    }, []);
+    const search = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const term = query.trim();
+        if (!term)
+            return;
+        router.push(`/search?q=${encodeURIComponent(term)}`);
+        setSearchOpen(false);
+        setMenuOpen(false);
+    };
+    return (<>
+      <header className="eh-shell-header">
+        <div className="eh-shell-inner">
+          <Link className="eh-shell-logo" href="/" onClick={() => setMenuOpen(false)} aria-label="Equal Horizons homepage">
+            <span className="eh-shell-orbit" aria-hidden="true"><i /></span>
+            <span>equal horizons<span className="eh-shell-logo-stop">.</span></span>
+          </Link>
+          <nav className="eh-shell-nav" aria-label="Primary navigation">
+            {navigation.map(({ href, label }) => (<Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined}>
+                {label}
+              </Link>))}
+          </nav>
+          <div className="eh-shell-actions">
+            <button type="button" className="eh-shell-search" onClick={() => setSearchOpen(true)} aria-label="Open search">
+              <Search size={17} strokeWidth={1.8}/> <span>Search</span>
+            </button>
+            <Link className="eh-shell-account" href="/account">
+              {user ? 'My account' : 'Sign in'} <ArrowUpRight size={15} strokeWidth={1.6}/>
+            </Link>
+            <button type="button" className="eh-shell-menu-button" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>
+              {menuOpen ? <X size={22}/> : <Menu size={22}/>}
+            </button>
+          </div>
+        </div>
+        {menuOpen && (<nav className="eh-shell-mobile" aria-label="Mobile navigation">
+            {navigation.map(({ href, label }) => <Link href={href} key={href} onClick={() => setMenuOpen(false)}>{label}<span>↗</span></Link>)}
+            <Link href="/account" onClick={() => setMenuOpen(false)}>Your account <span>↗</span></Link>
+          </nav>)}
+      </header>
+      {searchOpen && (<div className="eh-shell-search-overlay" role="presentation" onMouseDown={event => {
+                if (event.target === event.currentTarget)
+                    setSearchOpen(false);
+            }}>
+          <div className="eh-shell-search-dialog" role="dialog" aria-modal="true" aria-label="Search Equal Horizons">
+            <div className="eh-shell-search-top"><span>Search Equal Horizons</span><button onClick={() => setSearchOpen(false)} aria-label="Close search"><X size={22}/></button></div>
+            <form onSubmit={search}>
+              <Search size={22} strokeWidth={1.6}/>
+              <input autoFocus value={query} onChange={event => setQuery(event.target.value)} placeholder="A place, a headline, a public document…" aria-label="Search terms"/>
+              <button type="submit" aria-label="Submit search">↗</button>
+            </form>
+            <p>Search across reporting, civic documents, and the archive.</p>
+          </div>
+        </div>)}
+    </>);
+}

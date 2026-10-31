@@ -1,2 +1,2 @@
-import {HomeSections} from '@/components/HomeSections';
-export default function Home(){return <HomeSections/>}
+import { FinalHome } from '@/components/FinalHome';
+export default function Home() { return <FinalHome />; }

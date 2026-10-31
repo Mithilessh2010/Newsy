@@ -1,9 +1,32 @@
-import {NextRequest,NextResponse} from 'next/server';import {createClient} from '@supabase/supabase-js';
-import {getNews,type FeedItem} from '@/lib/news';import {feedLocationKey,mergeStories} from '@/lib/ingestion';import {locationFromQuery,isNewsScope} from '@/lib/location';
-export const maxDuration=30;
-export async function GET(req:NextRequest){const loc=locationFromQuery(req.nextUrl.searchParams);const rawScope=req.nextUrl.searchParams.get('scope');const scope=isNewsScope(rawScope)?rawScope:'local';
- try{const live=await getNews(loc,scope);const dbUrl=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;let archive:FeedItem[]=[],archiveAvailable=false;
- if(dbUrl&&key){try{const sb=createClient(dbUrl,key,{auth:{persistSession:false}});const {data,error}=await sb.from('news_items').select('id,title,publisher,url,published_at,category,city,country_code,scope').eq('location_key',feedLocationKey(loc,scope)).eq('scope',scope).order('published_at',{ascending:false}).limit(100);if(!error){archiveAvailable=true;archive=(data||[]).map(row=>({id:row.id,title:row.title,source:row.publisher,url:row.url,publishedAt:row.published_at,category:row.category,city:row.city,countryCode:row.country_code,scope:row.scope}));}}catch{/* API still serves live headlines if DB is unavailable. */}}
- const stories=mergeStories(live.stories,archive,100);
- return NextResponse.json({...live,stories,archiveEnabled:archiveAvailable,available:live.available||archive.length>0,source:archive.length?live.source+' + Equal Horizons archive':live.source},{headers:{'Cache-Control':'public, s-maxage=300, stale-while-revalidate=600'}});
- }catch{return NextResponse.json({city:loc.name,location:loc,scope,stories:[],available:false,message:'The news provider is temporarily unavailable.',source:'News RSS',fetchedAt:new Date().toISOString()},{status:200})}}
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { getNews, type FeedItem } from '@/lib/news';
+import { feedLocationKey, mergeStories } from '@/lib/ingestion';
+import { locationFromQuery, isNewsScope } from '@/lib/location';
+export const maxDuration = 30;
+export async function GET(req: NextRequest) {
+    const loc = locationFromQuery(req.nextUrl.searchParams);
+    const rawScope = req.nextUrl.searchParams.get('scope');
+    const scope = isNewsScope(rawScope) ? rawScope : 'local';
+    try {
+        const live = await getNews(loc, scope);
+        const dbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        let archive: FeedItem[] = [], archiveAvailable = false;
+        if (dbUrl && key) {
+            try {
+                const sb = createClient(dbUrl, key, { auth: { persistSession: false } });
+                const { data, error } = await sb.from('news_items').select('id,title,publisher,url,published_at,category,city,country_code,scope').eq('location_key', feedLocationKey(loc, scope)).eq('scope', scope).order('published_at', { ascending: false }).limit(100);
+                if (!error) {
+                    archiveAvailable = true;
+                    archive = (data || []).map(row => ({ id: row.id, title: row.title, source: row.publisher, url: row.url, publishedAt: row.published_at, category: row.category, city: row.city, countryCode: row.country_code, scope: row.scope }));
+                }
+            }
+            catch { }
+        }
+        const stories = mergeStories(live.stories, archive, 100);
+        return NextResponse.json({ ...live, stories, archiveEnabled: archiveAvailable, available: live.available || archive.length > 0, source: archive.length ? live.source + ' + Equal Horizons archive' : live.source }, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } });
+    }
+    catch {
+        return NextResponse.json({ city: loc.name, location: loc, scope, stories: [], available: false, message: 'The news provider is temporarily unavailable.', source: 'News RSS', fetchedAt: new Date().toISOString() }, { status: 200 });
+    }
+}

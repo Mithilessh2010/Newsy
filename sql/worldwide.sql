@@ -1,4 +1,3 @@
--- Run AFTER sql/schema.sql. Maintains existing data and adds location-aware news archival.
 ALTER TABLE public.news_items ADD COLUMN IF NOT EXISTS country_code text NOT NULL DEFAULT 'US';
 ALTER TABLE public.news_items ADD COLUMN IF NOT EXISTS region text NOT NULL DEFAULT 'California';
 ALTER TABLE public.news_items ADD COLUMN IF NOT EXISTS location_key text NOT NULL DEFAULT 'us-california-pleasanton';
@@ -22,7 +21,6 @@ DROP POLICY IF EXISTS "location_owner_delete" ON public.followed_locations;
 CREATE POLICY "location_owner_select" ON public.followed_locations FOR SELECT TO authenticated USING ((select auth.uid())=user_id);
 CREATE POLICY "location_owner_insert" ON public.followed_locations FOR INSERT TO authenticated WITH CHECK ((select auth.uid())=user_id);
 CREATE POLICY "location_owner_delete" ON public.followed_locations FOR DELETE TO authenticated USING ((select auth.uid())=user_id);
--- Worker-only queue and polling telemetry. No browser access policies.
 CREATE TABLE IF NOT EXISTS public.monitored_locations (
  location_key text PRIMARY KEY,
  city text NOT NULL,
@@ -35,4 +33,3 @@ CREATE TABLE IF NOT EXISTS public.monitored_locations (
 );
 CREATE INDEX IF NOT EXISTS monitored_queue ON public.monitored_locations(last_checked_at ASC NULLS FIRST);
 ALTER TABLE public.monitored_locations ENABLE ROW LEVEL SECURITY;
--- Deliberately no public INSERT/SELECT/UPDATE/DELETE policies. Worker uses service-role.

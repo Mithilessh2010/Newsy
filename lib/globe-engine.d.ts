@@ -1,0 +1,10 @@
+export function radians(value:number):number;
+export function wrapAngle(value:number):number;
+export function angularDifference(from:number,to:number):number;
+export function geoPoint(lat:number,lon:number):[number,number,number];
+export function transformPoint(point:[number,number,number],yaw:number,pitch:number):[number,number,number];
+export function projectGeo(lat:number,lon:number,yaw:number,pitch:number,zoom:number,width:number,height:number):{x:number;y:number;visible:boolean;front:boolean};
+export function makeSphere(rows?:number,columns?:number):{vertices:Float32Array;indices:Uint16Array};
+export type GlobeState={yaw:number;pitch:number;zoom:number;width:number;height:number};
+export type GlobeHandle={focus:(lat:number,lon:number,zoom?:number)=>void;setZoom:(value:number)=>void;getZoom:()=>number;reset:()=>void;getState:()=>GlobeState;destroy:()=>void};
+export function createGlobe(canvas:HTMLCanvasElement,options?:{textureUrl?:string;latitude?:number;longitude?:number;zoom?:number;autoRotate?:boolean;onTextureReady?:(name:string,source:'real'|'fallback')=>void;onFrame?:(state:GlobeState)=>void;onInteract?:()=>void}):GlobeHandle;

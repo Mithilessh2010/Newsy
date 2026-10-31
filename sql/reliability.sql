@@ -1,8 +1,5 @@
--- Version 3 reliability migration. Apply AFTER schema.sql and worldwide.sql.
--- Provides national/world ingestion, queue leases, and automatic registration of followed cities.
 BEGIN;
 ALTER TABLE public.saved_items ADD COLUMN IF NOT EXISTS metadata jsonb NOT NULL DEFAULT '{}'::jsonb;
--- PostgREST upsert requires an UPDATE policy on conflicts; prior versions only allowed INSERT.
 DROP POLICY IF EXISTS "saved_owner_update" ON public.saved_items;
 CREATE POLICY "saved_owner_update" ON public.saved_items FOR UPDATE TO authenticated
  USING ((select auth.uid())=user_id) WITH CHECK ((select auth.uid())=user_id);
@@ -27,12 +24,9 @@ CREATE TABLE IF NOT EXISTS public.monitored_feeds (
 );
 CREATE INDEX IF NOT EXISTS monitored_feeds_poll_order ON public.monitored_feeds(last_checked_at ASC NULLS FIRST);
 ALTER TABLE public.monitored_feeds ENABLE ROW LEVEL SECURITY;
--- Service role only, never open these tables to public inserts or selects.
 REVOKE ALL ON TABLE public.monitored_feeds FROM anon,authenticated;
 INSERT INTO public.monitored_feeds(feed_key,scope,city,region,country_code)
 VALUES ('world','world','Worldwide','','US') ON CONFLICT DO NOTHING;
-
--- Register newly followed cities immediately; no arbitrary 300-user scan cap.
 CREATE OR REPLACE FUNCTION public.register_followed_location() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 BEGIN
@@ -54,8 +48,6 @@ INSERT INTO public.monitored_locations(location_key,city,region,country_code)
 INSERT INTO public.monitored_feeds(feed_key,scope,city,region,country_code)
  SELECT DISTINCT ON (country_code) 'national:'||country_code,'national',city,region,country_code
  FROM public.followed_locations WHERE true ON CONFLICT (feed_key) DO NOTHING;
-
--- Atomic claims prevent two simultaneously running jobs polling the same records.
 CREATE OR REPLACE FUNCTION public.claim_local_ingestion(p_limit integer DEFAULT 8)
 RETURNS SETOF public.monitored_locations LANGUAGE sql SECURITY DEFINER SET search_path=public AS $$
  WITH picks AS (
